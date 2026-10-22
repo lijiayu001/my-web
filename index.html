@@ -992,6 +992,37 @@ h1,h2,h3,p,figure,figcaption{ margin:0; }
   transition:opacity .35s ease, visibility .35s;
 }
 .vmodal.is-open{ opacity:1; visibility:visible; }
+.vmodal-inner{ position:relative; }
+.vload{
+  position:absolute;
+  inset:0;
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
+  background:rgba(12,12,14,.72);
+  -webkit-backdrop-filter:blur(8px);
+  backdrop-filter:blur(8px);
+  border-radius:14px;
+  z-index:3;
+}
+.vmodal.is-loading .vload,
+.vmodal.is-error .vload{ display:flex; }
+.vload-bar{
+  width:168px; height:3px;
+  border-radius:2px;
+  background:rgba(255,255,255,.22);
+  overflow:hidden;
+}
+.vload-bar i{
+  display:block; width:0; height:100%;
+  background:#fff;
+  transition:width .25s ease;
+}
+.vload-text{ font-size:13px; letter-spacing:.04em; color:rgba(255,255,255,.92); }
+.vmodal.is-error .vload-bar{ display:none; }
+
 .vmodal-inner{ width:min(1040px,92vw); }
 .vmodal video{
   display:block; width:100%; max-height:76vh;
@@ -1193,6 +1224,8 @@ h1,h2,h3,p,figure,figcaption{ margin:0; }
   list-style:none;
 }
 .tool{
+  pointer-events:none;
+  user-select:none;
   width:76px;
   height:76px;
   border-radius:17px;
@@ -1209,11 +1242,6 @@ h1,h2,h3,p,figure,figcaption{ margin:0; }
   background:transparent;
 }
 .tool.is-plain img{ object-fit:contain; }
-.tool:hover{
-  transform:translateY(-4px) scale(1.04);
-  box-shadow:0 18px 28px -16px rgba(0,0,0,.5),
-             inset 0 0 0 1px rgba(0,0,0,.04);
-}
 .js .tools .tool{
   opacity:0;
   transform:translateY(12px) scale(.96);
@@ -1309,16 +1337,16 @@ setTimeout(function () {
 
         <div class="skills-tools" data-reveal data-delay="140">
           <ul class="tools">
-            <li class="tool"><img src="assets/img/pr.png" alt="Adobe Premiere Pro" title="Adobe Premiere Pro" width="176" height="176" loading="lazy" decoding="async"></li>
-            <li class="tool"><img src="assets/img/ps.png" alt="Adobe Photoshop" title="Adobe Photoshop" width="176" height="176" loading="lazy" decoding="async"></li>
-            <li class="tool"><img src="assets/img/lr.png" alt="Adobe Lightroom" title="Adobe Lightroom" width="176" height="176" loading="lazy" decoding="async"></li>
-            <li class="tool"><img src="assets/img/ai.png" alt="Adobe Illustrator" title="Adobe Illustrator" width="176" height="176" loading="lazy" decoding="async"></li>
-            <li class="tool is-plain"><img src="assets/img/fcp.png" alt="Final Cut Pro" title="Final Cut Pro" width="176" height="176" loading="lazy" decoding="async"></li>
-            <li class="tool"><img src="assets/img/resolve.png" alt="DaVinci Resolve" title="DaVinci Resolve" width="176" height="176" loading="lazy" decoding="async"></li>
-            <li class="tool"><img src="assets/img/jianying.png" alt="剪映" title="剪映" width="176" height="176" loading="lazy" decoding="async"></li>
-            <li class="tool"><img src="assets/img/procreate.png" alt="Procreate" title="Procreate" width="176" height="176" loading="lazy" decoding="async"></li>
-            <li class="tool"><img src="assets/img/office.png" alt="Microsoft Office" title="Microsoft Office" width="176" height="176" loading="lazy" decoding="async"></li>
-            <li class="tool"><img src="assets/img/wps.png" alt="WPS Office" title="WPS Office" width="176" height="176" loading="lazy" decoding="async"></li>
+            <li class="tool"><img src="assets/img/pr.png" alt="Adobe Premiere Pro" width="176" height="176" loading="lazy" decoding="async"></li>
+            <li class="tool"><img src="assets/img/ps.png" alt="Adobe Photoshop" width="176" height="176" loading="lazy" decoding="async"></li>
+            <li class="tool"><img src="assets/img/lr.png" alt="Adobe Lightroom" width="176" height="176" loading="lazy" decoding="async"></li>
+            <li class="tool"><img src="assets/img/ai.png" alt="Adobe Illustrator" width="176" height="176" loading="lazy" decoding="async"></li>
+            <li class="tool is-plain"><img src="assets/img/fcp.png" alt="Final Cut Pro" width="176" height="176" loading="lazy" decoding="async"></li>
+            <li class="tool"><img src="assets/img/resolve.png" alt="DaVinci Resolve" width="176" height="176" loading="lazy" decoding="async"></li>
+            <li class="tool"><img src="assets/img/jianying.png" alt="剪映" width="176" height="176" loading="lazy" decoding="async"></li>
+            <li class="tool"><img src="assets/img/procreate.png" alt="Procreate" width="176" height="176" loading="lazy" decoding="async"></li>
+            <li class="tool"><img src="assets/img/office.png" alt="Microsoft Office" width="176" height="176" loading="lazy" decoding="async"></li>
+            <li class="tool"><img src="assets/img/wps.png" alt="WPS Office" width="176" height="176" loading="lazy" decoding="async"></li>
           </ul>
         </div>
       </div>
@@ -1727,6 +1755,10 @@ setTimeout(function () {
   <button class="vmodal-close" id="vClose" type="button" aria-label="关闭">✕</button>
   <div class="vmodal-inner">
     <video id="vPlayer" controls playsinline preload="metadata" controlslist="nodownload noremoteplayback" disablepictureinpicture disableremoteplayback draggable="false" oncontextmenu="return false"></video>
+    <div class="vload" aria-hidden="true">
+      <span class="vload-bar"><i id="vLoadBar"></i></span>
+      <span class="vload-text" id="vLoadText">加载中</span>
+    </div>
     <p id="vTitle"></p>
   </div>
 </div>
@@ -2362,29 +2394,95 @@ setTimeout(function () {
     vplayer.draggable = false;
     vplayer.addEventListener('contextmenu', (e) => e.preventDefault());
 
+    const vloadBar = $('#vLoadBar');
+    const vloadText = $('#vLoadText');
+    let vBlobUrl = null;
+    let vCtrl = null;
+
+    function setLoad(pct, text) {
+      if (vloadBar) vloadBar.style.width = pct + '%';
+      if (vloadText) vloadText.textContent = text;
+    }
+
+    function resetVideo() {
+      if (vCtrl) {
+        try { vCtrl.abort(); } catch (err) {}
+        vCtrl = null;
+      }
+      if (vBlobUrl) {
+        URL.revokeObjectURL(vBlobUrl);
+        vBlobUrl = null;
+      }
+      vplayer.pause();
+      vplayer.removeAttribute('src');
+      vplayer.load();
+      vmodal.classList.remove('is-loading', 'is-error');
+    }
+
     function openVideo(btn) {
       const src = btn.dataset.src;
       if (!src) return;
       const poster = btn.querySelector('img');
       if (poster) vplayer.poster = poster.src;
-      vplayer.src = src;
       if (vtitle) vtitle.textContent = btn.dataset.title || '';
+
       vmodal.classList.add('is-open');
       vmodal.setAttribute('aria-hidden', 'false');
       root.classList.add('is-locked');
       document.body.classList.add('is-locked');
-      const p = vplayer.play();
-      if (p && p.catch) p.catch(function () {});
       if (vclose) vclose.focus({ preventScroll: true });
+
+      resetVideo();
+      vmodal.classList.add('is-loading');
+      setLoad(0, '加载中');
+
+      const ctrl = 'AbortController' in window ? new AbortController() : null;
+      vCtrl = ctrl;
+
+      /* 整段下载成本地 blob 再播放：服务器不支持分段时也能随意拖动进度条 */
+      fetch(src, ctrl ? { signal: ctrl.signal } : {})
+        .then(function (res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const total = Number(res.headers.get('content-length')) || 0;
+          if (!res.body || !res.body.getReader) return res.blob();
+
+          const reader = res.body.getReader();
+          const chunks = [];
+          let got = 0;
+
+          function pump() {
+            return reader.read().then(function (r) {
+              if (r.done) return new Blob(chunks, { type: 'video/mp4' });
+              chunks.push(r.value);
+              got += r.value.length;
+              const pct = total ? Math.min(99, Math.round((got / total) * 100)) : 0;
+              setLoad(pct, total ? '加载中 ' + pct + '%' : '加载中');
+              return pump();
+            });
+          }
+          return pump();
+        })
+        .then(function (blob) {
+          if (!blob || !blob.size) throw new Error('empty');
+          vBlobUrl = URL.createObjectURL(blob);
+          vplayer.src = vBlobUrl;
+          vmodal.classList.remove('is-loading');
+          const p = vplayer.play();
+          if (p && p.catch) p.catch(function () {});
+        })
+        .catch(function (err) {
+          if (err && err.name === 'AbortError') return;
+          vmodal.classList.remove('is-loading');
+          vmodal.classList.add('is-error');
+          setLoad(100, '视频加载失败，请刷新重试');
+        });
     }
 
     function closeVideo() {
       if (!vmodal.classList.contains('is-open')) return;
       vmodal.classList.remove('is-open');
       vmodal.setAttribute('aria-hidden', 'true');
-      vplayer.pause();
-      vplayer.removeAttribute('src');
-      vplayer.load();
+      resetVideo();
       root.classList.remove('is-locked');
       document.body.classList.remove('is-locked');
     }
